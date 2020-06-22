@@ -2,27 +2,20 @@ F = require 'pl.tablex'
 D = require 'pl.pretty'
 geometry = require("hs.geometry")
 
--- dump various information about the currently focused window to the Hammerspoon console
-hs.hotkey.bind({"cmd", "alt", "ctrl"}, "W", function()
-  local win = hs.window.focusedWindow()
-  local f = win:frame()
-  print(D.dump(win:application():title()))
-  print(D.dump(f))
-
-  print("\""..win:application():title().."\", nil,right,nil, nil, hs.geometry.rect("..f.x..", "..f.y..", " ..f.w..", " ..f.y..")" )
-end)
-
+-- clean up console output for ui-less apps
+hs.window.filter.ignoreAlways['Atom Helper'] = true
+hs.window.filter.ignoreAlways['Notes Networking'] = true
+hs.window.filter.ignoreAlways['Mail Networking'] = true
+hs.window.filter.ignoreAlways['Slack Helper (Renderer)'] = true
+hs.window.filter.ignoreAlways['Spotlight'] = true
+hs.application.enableSpotlightForNameSearches(true)
 
 -- Handle various webex annoyances
 
 -- remove the tabs left in google by WebEx
-
 function webexTabDestroyer()
-  print("I AM THE DESTROYER")
-
   -- grab current focused window
   local w = hs.window.focusedWindow()
-  print (w)
 
   hs.application.launchOrFocus("Google Chrome")
   local chrome = hs.appfinder.appFromName("Google Chrome")
@@ -44,15 +37,21 @@ end
 hs.hotkey.bind({"cmd", "alt", "ctrl"}, "T", webexTabDestroyer)
 
 -- and try to do it whenever a new webex window is created
-local webexWindowFilter = hs.window.filter.new(false):setAppFilter("Cisco Webex Meetings", {allowRoles="AXStandardWindow"})
+webexWindowFilter = hs.window.filter.new(false):setAppFilter("Cisco Webex Meetings", {allowRoles="AXStandardWindow"})
 webexWindowFilter:subscribe(hs.window.filter.windowCreated, function(w)
-  print("TRIGGERED --- " .. w:subrole() )
-
   webexTabDestroyer()
+  w:move(geometry.rect(0.28,0.2, 0.60, 0.60), left())
+end)
+
+-- auto-click the annoying "Are You Sure"
+webexDialogFilter = hs.window.filter.new(false):setAppFilter("Cisco Webex Meetings", {allowRoles="AXDialog"})
+webexDialogFilter:subscribe(hs.window.filter.windowCreated, function(w)
+  print(w)
 end)
 
 
 -- Settup Screen for basic layout
+  -- this is _really_ specific to my personal screen layout
 function right()
   return hs.screen.allScreens()[1]
 end
@@ -67,7 +66,6 @@ end
 
 hs.hotkey.bind({"cmd", "alt", "ctrl"}, "1", function()
   local windowLayout = {
-
           -- MBP Main Screen
           {"Sonos S1 Controller",  nil, right,  geometry.rect(0.00,0.0, 0.50, 0.75), nil, nil },
 
@@ -87,7 +85,7 @@ hs.hotkey.bind({"cmd", "alt", "ctrl"}, "1", function()
       }
 
       -- make sure everyone is open
-      F.foreach (windowLayout, function(v) hs.application.open(v[1],5, true) end )
+      F.foreach (windowLayout, function(v) hs.application.open(v[1], 5, true) end )
 
       -- and position them
       hs.layout.apply(windowLayout)
@@ -107,27 +105,12 @@ function reloadConfig(files)
     end
 end
 
+-- dump various information about the currently focused window to the Hammerspoon console
+hs.hotkey.bind({"cmd", "alt", "ctrl"}, "W", function()
+  local win = hs.window.focusedWindow()
+  win:move(geometry.rect(0.28,0.2, 0.60, 0.60), left())
+end)
+
+-- automaticaly reload the config when it changes
 myWatcher = hs.pathwatcher.new(os.getenv("HOME") .. "/.hammerspoon/", reloadConfig):start()
 hs.notify.new({title="Hammerspoon", informativeText="Config Reloaded"}):send()
-
-
---[[
--- set up your instance(s)
-expose = hs.expose.new(nil,{showThumbnails=true}) -- default windowfilter, no thumbnails
-expose_app = hs.expose.new(nil,{onlyActiveApplication=true}) -- show windows for the current application
-expose_space = hs.expose.new(nil,{includeOtherSpaces=false}) -- only windows in the current Mission Control Space
-expose_browsers = hs.expose.new{'Safari','Google Chrome'} -- specialized expose using a custom windowfilter
--- for your dozens of browser windows :)
-
--- then bind to a hotkey
-hs.hotkey.bind('ctrl-cmd','e','Expose',function()expose:toggleShow()end)
-hs.hotkey.bind('ctrl-cmd-shift','e','App Expose',function()expose_app:toggleShow()end)
-
-
-
-D.dump(hs.window.allWindows())
-
-w = hs.appfinder.windowFromWindowTitle("Cisco Webex Meetings")
-w:focus()
-
---]]
