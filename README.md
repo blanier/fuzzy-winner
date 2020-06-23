@@ -7,4 +7,5 @@ Convenience functions to manage my _specific_ desktop setup.
 - make webex slightly less annoying by killing it when it asks "Are You Sure?"
 
 Requires [HammerSpoon](http://www.hammerspoon.org/go/)
+
 Fork this repo into ~/.hammerspoon
