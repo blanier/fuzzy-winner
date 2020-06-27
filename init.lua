@@ -14,20 +14,21 @@ hs.application.enableSpotlightForNameSearches(true)
 
 -- remove the tabs left in google by WebEx
 function webexTabDestroyer()
+  local browsers = {hs.window.find("Google Chrome")}
+  local tab_path = {"Tab", "Apple Inc. WebEx Enterprise Site"}
+  local close_path = {"File", "Close Tab"}
+
   -- grab current focused window
   local w = hs.window.focusedWindow()
 
-  hs.application.launchOrFocus("Google Chrome")
-  local chrome = hs.appfinder.appFromName("Google Chrome")
+  F.foreach(browsers, function(b)
+    b:focus()
 
-  local tab_path = {"Tab", "Apple Inc. WebEx Enterprise Site"}
-  local close_path = {"File", "Close Tab"}
-  local tab = chrome:findMenuItem(tab_path)
-
-  if (tab) then
-    chrome:selectMenuItem(tab_path)
-    chrome:selectMenuItem(close_path)
-  end
+    while (b:application():findMenuItem(tab_path)) do
+      b:application():selectMenuItem(tab_path)
+      b:application():selectMenuItem(close_path)
+    end
+  end)
 
   -- restore previous focus
   if (w) then w:focus() end
@@ -44,9 +45,12 @@ webexWindowFilter:subscribe(hs.window.filter.windowCreated, function(w)
 end)
 
 -- auto-click the annoying "Are You Sure"
-webexDialogFilter = hs.window.filter.new(false):setAppFilter("Cisco Webex Meetings", {allowRoles="AXDialog"})
+webexDialogFilter = hs.window.filter.new(false):setAppFilter("Cisco Webex Meetings", {allowRoles="AXDialog",
+                                                                                      allowTitles={"End Meeting","Leave Meeting"}})
 webexDialogFilter:subscribe(hs.window.filter.windowCreated, function(w)
-  print(w)
+  -- DISGUSTING: webex has to be killed twice, once for the "helper" and once for the actual window
+  w:application():kill9()
+  w:application():kill9()
 end)
 
 
@@ -105,10 +109,10 @@ function reloadConfig(files)
     end
 end
 
--- dump various information about the currently focused window to the Hammerspoon console
+-- move the current window into my "work window" spot
 hs.hotkey.bind({"cmd", "alt", "ctrl"}, "W", function()
   local win = hs.window.focusedWindow()
-  win:move(geometry.rect(0.28,0.2, 0.60, 0.60), left())
+  win:move(geometry.rect(0.15,0.2, 0.60, 0.60), left())
 end)
 
 -- automaticaly reload the config when it changes
